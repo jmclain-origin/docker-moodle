@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  db:
+    image: mariadb:10.6
+    restart: always
+    environment:
+      MYSQL_DATABASE: moodle
+      MYSQL_USER: moodle
+      MYSQL_PASSWORD: dbPassword123
+      MYSQL_RANDOM_ROOT_PASSWORD: '1'
+    volumes:
+      - ./db_data:/var/lib/mysql
+
+  moodle:
+    build: ./moodle
+    restart: always
+    depends_on:
+      - db
+    environment:
+      MOODLE_DATABASE_TYPE: mariadb
+      MOODLE_DATABASE_HOST: db
+      MOODLE_DATABASE_PORT: 3306
+      MOODLE_DATABASE_NAME: moodle
+      MOODLE_DATABASE_USER: moodle
+      MOODLE_DATABASE_PASSWORD: moodlePassword123
+    volumes:
+      - ./moodle_data:/var/www/html/moodle
+      - ./moodledata_data:/var/www/html/moodledata
+    ports:
+      - '8080:80'

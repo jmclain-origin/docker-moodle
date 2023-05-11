@@ -1,0 +1,13 @@
+# Ignore the Moodle source code folder
+moodle_data/
+
+# Ignore the Moodle data folder
+moodledata_data/
+
+# Ignore the database data folder
+db_data/
+
+# Ignore Docker-related temporary files and caches
+.dockerignore
+.docker/
+*.log
