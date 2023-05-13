@@ -86,3 +86,10 @@ Moodle setup is now complete. You will be redirected to the front page of your M
 Visit the [Moodle Docs](https://docs.moodle.org/) and the [Moodle community forums](https://moodle.org/course/) for additional resources and support.
 
 ---
+
+
+-------------------------
+
+`sudo docker exec -it lms_moodle_1 /bin/bash`
+
+`vim /etc/apache2/sites-available/learn.joshmclain.com.conf`
