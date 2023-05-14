@@ -14,3 +14,7 @@ db_data/
 
 # Ignore SSL cert
 /letsencrypt
+
+/moodle/*.conf
+
+.unotes
