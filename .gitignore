@@ -11,3 +11,10 @@ db_data/
 .dockerignore
 .docker/
 *.log
+
+# Ignore SSL cert
+/letsencrypt
+
+/moodle/*.conf
+
+.unotes

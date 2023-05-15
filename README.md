@@ -1,88 +1,161 @@
-# Docker Moodle LMS
-
-Goal: to create an instance that will be used to develop, test and deploy to a cloud platform provider
+# Moodle LMS Docker setup
 
 (ARM64 and AMD64 architectures supported)
 
-## Requirements 
+## Getting started
 
-- Moodle 4.2
-- docker-compose
-    - Apache 8.0
-    - Maria 10.6 
+Before starting you should have
 
-### First time setup
+- Host machine and youre able to secure shell (`ssh`) into it
+- Domain name that you have access to DNS (can use host public IP, can't change later)
+- set strong password for `MYSQL_PASSWORD` in compose file
 
-After cloning this this repository, run commands from project root
+## a) Install deps on host
 
-Build the Dockerfile
 ```bash
-$ docker-compose build
-``` 
+# 1) Update host system
 
-Add Moodle source code to repository
-```bash
-$ git clone -b MOODLE_402_STABLE https://github.com/moodle/moodle.git ./moodle_data
+sudo apt update && sudo sudo apt upgrade -y
+
+# 2) Install docker & docker-compose
+
+sudo apt install docker docker-compose
+
+# 3) add current user to docker group
+
+sudo usermod -aG docker $USER
 ```
 
-Start docker containers
+In order for changes to take effect user must logout anf log back in.
+
 ```bash
-$ docker-compose up -d
+# 4) exit to reset
+exit 
+
+# 5) checking after exit still gone
+ubuntu@ip-0-0-0-0:~/lms__dirname$ groups
+>ubuntu adm dialout cdrom floppy sudo audio dip video plugdev netdev lxd docker
+
+# 6) if docker isnt there try rebooting
+sudo reboot
 ```
 
-Go to [localhost:8080](http://localhost:8080) and follow installation instructions
+Should be able to proceed if reboot was done, else Id wait for full resolution
+
+# b) preping docker files
+
+Before continuing if you plan on having HTTPS traffic you need to add/edit files in `./moodle/`
+
+1) We will need to change the virtirual host config file to match the name of your site.
+   If your domain name is **awesome_site.com** then the file name should be `awesome_site.com.conf`
+2) Next edit the content in `.conf` to mactch your specific requirements
+3) edit `./moddle/Dockerfile` to match your site. I'll continue useing `awesome_site.com`
+
+```apache
+# file: ./moodle/awesome_site.com.conf
+
+<VirtualHost *:80>
+    ServerName awesome_site.com
+    DocumentRoot /var/www/html/moodle
+
+    # Certbot challenge proxy
+    <Location /.well-known/acme-challenge>
+        Require all granted
+    </Location>
+
+    # Additional Moodle configuration...
+</VirtualHost>
+```
+
+ *make sure to change to awesome_stie.com to you*
+
+```bash
+# file: ./moodle/Dockerfile
+
+# Copy the virtual host configuration file
+COPY nice.example.com.conf /etc/apache2/sites-available/nice.example.com.conf
+
+# Enable the virtual host
+RUN ln -s /etc/apache2/sites-available/nice.example.com.conf /etc/apache2/sites-enabled/nice.example.com.conf
+
+# Install Certbot
+RUN apt-get update && apt-get install -y certbot python3-certbot-apache```
+) creating docker containers
+
+```
+
+*we will be coming back to these for later edits.*
+
+# c) Build Docker image
+
+Before starting the build we need to get the Moodle source code and add it to our `./moodle_data` folder once finish we can start building
+
+1) Add Moodle source code to our file tree
+2) Build docker images
+3) Use docker-compose to start up containers running our Moodle instace
+
+```bash
+# clone Moodle v4.2 to folder `moodle_data` in root dir !important do not change folder name
+git clone -b MOODLE_402_STABLE https://github.com/moodle/moodle.git ./moodle_data
+
+# build dockerfile
+docker-compose build
+
+# start containers
+docker-compose up -d
+```
+
+*Moodle should be accessable now on host IP on HTTP traffic I you had a domain routed to that IP check status.*
+
+---
+
+#### Stoping docker
+
+If this is the first time shutting down and you hadn't done clean-up yet, you'll need to before starting docer again.
+
+```bash
+# stoping docker process
+docker-compose down
+```
+
+#### Logging
 
 if error occurs when loading web page check logs for troubleshooting
+
 ```bash
-$ docker-compose logs moodle
+docker-compose logs moodle
 ```
 
-## Install Process
+# d) Post Build Cleanup
 
-### Confirm paths
+Before moving forward there are a couple things from the build that we will want to remove. The volume running Moodle is presistant and after adding SSL we don't want to overwrite. 
 
-- Paths are auto populated and were mapped during docker build
-    - `/var/www/html/moodle` is mapped to `~/moodle_data`
-    - `/var/www/html/moodledata` is mapped to `~/moodledata_data`
+Delete these 3 line `./moodle/Dockerfile` and we will delete the `*.conf` file if you made one earlier. If not the proceed to Moodle installation
 
-### Database driver 
+```bash
+# Copy the virtual host configuration file
+COPY nice.example.com.conf /etc/apache2/sites-available/nice.example.com.conf
+# Enable the virtual host
+RUN ln -s /etc/apache2/sites-available/nice.example.com.conf /etc/apache2/sites-enabled/nice.example.com.conf
+# Install Certbot
+RUN apt-get update && apt-get install -y certbot python3-certbot-apache
+```
 
-- Select `MariaDB` from dropdown menu
+# SSL certbot signing
 
-### Database settings
+[SSL_SIGN](./SSL_SIGN.md)
 
-|key|value|notes|
-|---|---|---|
-|database host| `db`|
-|database name|`moodle`|
-|database user|`moodle`|
-|database password|`dbPassword123`| *set by `MYSQL_PASSWORD` in compose file*|
-|table prefix|`mdl_`|
-|database port|`3306`|
-|unix socket||*leave this field blank*|
+# Install Process
 
-- Confirm database settings and click "next" button
+[MOODLE_INSTALL](./MOODLE_INSTALL.md)
 
-### Setup and installation
 
-- Moodle will set up tables, click "continue" when completed
-- Agree to lincense and click "continue"
-- wait for installation to complete and click "continue" when done
+## troubleshooting
 
-### Create admin account
-
-- Fill out the admin account form, including username, password, email, first name, and last name. Make sure to remember your credentials, as you'll need them to log in and manage your Moodle site
-- Click "Update profile" to create the admin account
-
-### Set up front page settings
-
-- Fill out the information for your site, such as the full site name, short name, and description. You can customize other settings, like the front page format and default language
-- Click "Save changes" to proceed
+[TROUBLESHOOTING](./TROUBLESHOOTING.md)
 
 ---
 
-Moodle setup is now complete. You will be redirected to the front page of your Moodle site.
+`sudo docker exec -it lms_moodle_1 /bin/bash`
 
-Visit the [Moodle Docs](https://docs.moodle.org/) and the [Moodle community forums](https://moodle.org/course/) for additional resources and support.
-
----
+`vim /etc/apache2/sites-available/learn.joshmclain.com.conf`
